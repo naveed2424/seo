@@ -1,0 +1,6 @@
+{
+  "name": "RankPulse - AI Tools, SEO Research & Growth Engine",
+  "description": "Free AI tools, SEO research, Google Trends discovery, and practical guides to create, automate, and grow your online business.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
