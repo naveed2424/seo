@@ -127,34 +127,51 @@ Return ONLY valid JSON matching this schema:
     }
 
     if (action === 'analyze_keyword') {
-      const prompt = `Act as an elite SEO keyword research specialist.
-Analyze the seed keyword: "${keyword}" for country: "${country || 'US'}".
-Calculate our proprietary Opportunity Score (0-100) based on search intent, competition weakness, and commercial viability.
+      const targetCountry = country || 'United States (US)';
+      const prompt = `Act as an elite global SEO search intelligence analyst.
+Perform an in-depth keyword and SERP opportunity analysis for the seed query: "${keyword}" strictly localized for the market: "${targetCountry}".
+
+CRITICAL INSTRUCTIONS FOR ACCURACY & COUNTRY LOCALIZATION:
+1. CURRENCY & CPC: Use the exact local currency symbol of ${targetCountry} (e.g., £ for UK, $ for US/CA/AU, € for EU/Germany/France/Spain/Italy, ₹ for India, ¥ for Japan, R$ for Brazil, S$ for Singapore).
+2. REALISTIC VOLUME: Scale the monthly search demand realistically for ${targetCountry}'s population and digital market size. Do not give the same volume for US as UK or Australia.
+3. LOCALIZED LONG-TAIL: Generate 6 distinct long-tail keywords containing regional terms, spellings, and buying patterns for ${targetCountry} (e.g. for UK: include 'UK', 'in UK', 'near me', British phrasing; for Australia: 'AU', 'Australia'; for India: 'in India', 'online India', etc.).
+4. QUESTIONS: 3 authentic pain-point questions searchers in ${targetCountry} ask.
+5. SERP GAPS: Mention specific local ranking weaknesses and country-specific domains (e.g., .co.uk, .gov.uk, BBC for UK; .com, .gov for US; .de for Germany).
+6. OPPORTUNITY SCORE: Compute a unique 0-100 score based on local market saturation.
+
 Return ONLY valid JSON matching this schema:
 {
   "seedKeyword": "${keyword}",
-  "opportunityScore": 85,
-  "searchIntent": "Commercial",
-  "competitionIndex": "Low (Easy Win)",
-  "monthlyVolumeEstimate": "1,200 - 3,500 (Demand Estimate)",
-  "cpcEstimate": "$2.80 - $4.50",
+  "country": "${targetCountry}",
+  "currencySymbol": "appropriate currency symbol",
+  "opportunityScore": 82,
+  "searchIntent": "Commercial | Informational | Transactional | Navigational",
+  "competitionIndex": "Low (Easy Win) | Moderate Competition | High Authority Only",
+  "monthlyVolumeEstimate": "specific realistic range for ${targetCountry}",
+  "cpcEstimate": "realistic local currency range e.g. £1.80 - £3.40 or $2.50 - $4.10",
   "easyWin": true,
+  "marketInsight": "1-2 sentences on how this keyword performs uniquely in ${targetCountry}",
   "relatedLongTail": [
-    {"keyword": "long-tail keyword 1", "intent": "Commercial", "opportunity": 92},
-    {"keyword": "long-tail keyword 2", "intent": "Informational", "opportunity": 84},
-    {"keyword": "long-tail keyword 3", "intent": "Transactional", "opportunity": 88}
+    {"keyword": "localized keyword 1", "intent": "Commercial", "opportunity": 88},
+    {"keyword": "localized keyword 2", "intent": "Transactional", "opportunity": 84},
+    {"keyword": "localized keyword 3", "intent": "Informational", "opportunity": 79},
+    {"keyword": "localized keyword 4", "intent": "Commercial", "opportunity": 91},
+    {"keyword": "localized keyword 5", "intent": "Informational", "opportunity": 82},
+    {"keyword": "localized keyword 6", "intent": "Transactional", "opportunity": 86}
   ],
   "questionQueries": [
-    {"question": "How to question 1?", "searcherPain": "specific friction point"},
-    {"question": "What is question 2?", "searcherPain": "specific friction point"}
+    {"question": "Country-specific question 1?", "searcherPain": "specific local friction point"},
+    {"question": "Country-specific question 2?", "searcherPain": "specific local friction point"},
+    {"question": "Country-specific question 3?", "searcherPain": "specific local friction point"}
   ],
   "semanticClusters": [
-    {"clusterName": "Cluster 1", "keywords": ["kw1", "kw2", "kw3"]},
-    {"clusterName": "Cluster 2", "keywords": ["kw4", "kw5", "kw6"]}
+    {"clusterName": "Cluster 1 Name", "keywords": ["kw1", "kw2", "kw3"]},
+    {"clusterName": "Cluster 2 Name", "keywords": ["kw4", "kw5", "kw6"]}
   ],
   "serpGaps": [
-    "Identified weakness 1 in current ranking pages",
-    "Identified weakness 2 in current ranking pages"
+    "Specific weakness in ${targetCountry} ranking pages 1",
+    "Specific weakness in ${targetCountry} ranking pages 2",
+    "Specific weakness in ${targetCountry} ranking pages 3"
   ]
 }`;
 

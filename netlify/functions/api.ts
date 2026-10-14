@@ -93,7 +93,45 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
 
     if (action === 'analyze_keyword') {
-      const prompt = `Perform comprehensive keyword analysis for: "${keyword}", country: "${country}". Calculate Opportunity Score (0-100). Return JSON with: seedKeyword, opportunityScore, searchIntent, competitionIndex, monthlyVolumeEstimate, cpcEstimate, easyWin, relatedLongTail, questionQueries, semanticClusters, serpGaps.`;
+      const targetCountry = country || 'United States (US)';
+      const prompt = `Act as an elite global SEO search intelligence analyst.
+Perform an in-depth keyword and SERP opportunity analysis for the seed query: "${keyword}" strictly localized for the market: "${targetCountry}".
+Use local currency symbol (e.g. £ for UK, $ for US/CA/AU, € for EU, ₹ for India, ¥ for Japan), scale volume to the exact population of ${targetCountry}, provide country-specific long-tail phrases and SERP weaknesses.
+Return ONLY valid JSON matching:
+{
+  "seedKeyword": "${keyword}",
+  "country": "${targetCountry}",
+  "currencySymbol": "appropriate currency symbol",
+  "opportunityScore": 82,
+  "searchIntent": "Commercial | Informational | Transactional | Navigational",
+  "competitionIndex": "Low (Easy Win) | Moderate Competition | High Authority Only",
+  "monthlyVolumeEstimate": "realistic range for ${targetCountry}",
+  "cpcEstimate": "realistic local currency range e.g. £1.80 - £3.40 or $2.50 - $4.10",
+  "easyWin": true,
+  "marketInsight": "1-2 sentences on how this keyword performs uniquely in ${targetCountry}",
+  "relatedLongTail": [
+    {"keyword": "localized keyword 1", "intent": "Commercial", "opportunity": 88},
+    {"keyword": "localized keyword 2", "intent": "Transactional", "opportunity": 84},
+    {"keyword": "localized keyword 3", "intent": "Informational", "opportunity": 79},
+    {"keyword": "localized keyword 4", "intent": "Commercial", "opportunity": 91},
+    {"keyword": "localized keyword 5", "intent": "Informational", "opportunity": 82},
+    {"keyword": "localized keyword 6", "intent": "Transactional", "opportunity": 86}
+  ],
+  "questionQueries": [
+    {"question": "Country-specific question 1?", "searcherPain": "specific local friction point"},
+    {"question": "Country-specific question 2?", "searcherPain": "specific local friction point"},
+    {"question": "Country-specific question 3?", "searcherPain": "specific local friction point"}
+  ],
+  "semanticClusters": [
+    {"clusterName": "Cluster 1 Name", "keywords": ["kw1", "kw2", "kw3"]},
+    {"clusterName": "Cluster 2 Name", "keywords": ["kw4", "kw5", "kw6"]}
+  ],
+  "serpGaps": [
+    "Specific weakness in ${targetCountry} ranking pages 1",
+    "Specific weakness in ${targetCountry} ranking pages 2",
+    "Specific weakness in ${targetCountry} ranking pages 3"
+  ]
+}`;
       const response = await ai.models.generateContent({
         model: 'gemini-3.8-flash',
         contents: prompt,

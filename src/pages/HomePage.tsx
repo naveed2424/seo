@@ -14,6 +14,7 @@ import {
   FileCheck,
   ExternalLink,
 } from 'lucide-react';
+import { MatrixDataStreamAnimation } from '../components/common/MatrixDataStreamAnimation';
 import { HeroBackgroundAnimation } from '../components/common/HeroBackgroundAnimation';
 import { UniversalSearchBar } from '../components/search/UniversalSearchBar';
 import { LightweightVisual } from '../components/common/LightweightVisual';
@@ -43,29 +44,29 @@ export const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
 
   return (
     <div className="space-y-16 pb-16">
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden border-b border-neutral-200/80 bg-white py-16 sm:py-24">
-        {/* Animated Background Canvas */}
-        <HeroBackgroundAnimation />
+      {/* HERO SECTION with Film Matrix Stream Animation */}
+      <section className="relative overflow-hidden border-b border-[#3b2b1f] bg-[#1a120c] py-20 sm:py-28 text-white shadow-2xl">
+        {/* Film Matrix Digital Rain Canvas */}
+        <MatrixDataStreamAnimation intensity="active" />
 
         <div className="relative z-10 mx-auto max-w-5xl px-4 text-center sm:px-6 lg:px-8">
-          {/* Top Pill (Prompt Section 4) */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50/80 px-3.5 py-1 text-xs font-semibold text-blue-800 shadow-xs mb-6 backdrop-blur-xs">
-            <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-            <span>AI + SEO + Growth — Free Tools &amp; Practical Guides</span>
+          {/* Top Pill (Theme: Brown & Light Blue Matrix) */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-[#2d1f15]/90 px-4 py-1.5 text-xs font-semibold text-sky-300 shadow-lg mb-6 backdrop-blur-md">
+            <span className="flex h-2 w-2 rounded-full bg-sky-400 animate-ping" />
+            <span className="matrix-glow-blue tracking-wide">AI + SEO + Real-Time Search Matrix • 100% Free</span>
           </div>
 
-          {/* MAIN H1 & SECOND LINE (Prompt Section 4) */}
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-neutral-900 leading-tight sm:leading-none">
+          {/* MAIN H1 & SECOND LINE */}
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight sm:leading-none">
             Grow Smarter With AI.
-            <span className="block mt-2 text-3xl sm:text-5xl font-bold text-neutral-700">
+            <span className="block mt-2 text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-200 to-amber-300">
               Better Tools. Better Content. Better Traffic.
             </span>
           </h1>
 
           {/* Supporting Copy */}
-          <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-neutral-600 leading-relaxed">
-            Discover powerful AI tools, research better keywords, create useful content and learn practical strategies for growing your business online.
+          <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-neutral-300 leading-relaxed font-normal">
+            Discover powerful AI tools, explore real-time keyword intelligence across 14 countries, generate E-E-A-T content, and automate your online business.
           </p>
 
           {/* UNIVERSAL SEARCH BAR */}

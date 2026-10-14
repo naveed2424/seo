@@ -1,7 +1,7 @@
 /**
  * Brand Configuration for RankPulse
  * Centralizes brand identity, naming, colors, domains, and monetization settings.
- * Easily reconfigurable to any of the 10 included brand identities.
+ * Theme: Rich Brown & Luminous Cyber Light Blue with Matrix Data Animation
  */
 
 export interface BrandConfig {
@@ -32,12 +32,12 @@ export interface BrandConfig {
 
 export const brandConfig: BrandConfig = {
   siteName: "RankPulse",
-  tagline: "Grow Smarter With AI.",
+  tagline: "Grow Smarter With AI & Real-Time Search Matrix.",
   subTagline: "Better Tools. Better Content. Better Traffic.",
   logoText: "RankPulse",
   domain: "rankpulse.io",
-  primaryColor: "#2563eb", // Premium Royal Blue
-  accentColor: "#7c3aed",  // Subtle Violet
+  primaryColor: "#0284c7", // Luminous Light Blue / Cyber Cerulean
+  accentColor: "#593a22",  // Rich Espresso Brown
   creatorName: "RankPulse Editorial & Engineering Team",
   contactEmail: "hello@rankpulse.io",
   supportEmail: "support@rankpulse.io",

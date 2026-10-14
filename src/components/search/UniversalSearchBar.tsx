@@ -86,8 +86,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ navigate
     <div ref={containerRef} className="relative w-full max-w-3xl mx-auto z-30">
       {/* Search Input Box */}
       <form onSubmit={handleSearchSubmit} className="relative">
-        <div className="group relative flex items-center rounded-2xl border-2 border-neutral-200/90 bg-white p-2 shadow-lg shadow-neutral-100 transition-all focus-within:border-blue-600 focus-within:shadow-xl focus-within:shadow-blue-500/10">
-          <div className="flex h-11 w-11 items-center justify-center text-neutral-400 group-focus-within:text-blue-600">
+        <div className="group relative flex items-center rounded-2xl border-2 border-[#4d3625] bg-[#221710]/95 p-2 shadow-2xl backdrop-blur-md transition-all focus-within:border-sky-400 focus-within:shadow-xl focus-within:shadow-sky-500/20">
+          <div className="flex h-11 w-11 items-center justify-center text-sky-400 group-focus-within:text-sky-300">
             <Search className="h-5 w-5" />
           </div>
 
@@ -101,12 +101,12 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ navigate
             onFocus={() => setIsOpen(true)}
             placeholder="Search AI tools, keywords, business ideas or guides..."
             autoFocus={autoFocus}
-            className="w-full bg-transparent px-2 text-sm md:text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-hidden"
+            className="w-full bg-transparent px-2 text-sm md:text-base text-white placeholder:text-neutral-400 focus:outline-hidden"
           />
 
           <button
             type="submit"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-98 transition-all shrink-0"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-sky-400 hover:bg-sky-300 px-5 py-2.5 text-sm font-extrabold text-[#19120d] shadow-md shadow-sky-500/25 active:scale-98 transition-all shrink-0"
           >
             <span>Explore</span>
             <ArrowRight className="h-4 w-4" />
@@ -202,8 +202,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ navigate
         </div>
       )}
 
-      {/* Clickable Suggestion Tags */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs text-neutral-500">
+      {/* Clickable Suggestion Tags (Theme: Brown & Light Blue) */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs">
         <span className="text-neutral-400 mr-1 font-medium">Try searching:</span>
         {popularSearches.map((tag) => (
           <button
@@ -212,7 +212,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ navigate
               setQuery(tag.label);
               navigate(tag.route);
             }}
-            className="rounded-full border border-neutral-200/80 bg-neutral-100/70 px-3 py-1 hover:border-neutral-300 hover:bg-neutral-200/80 hover:text-neutral-900 transition-colors"
+            className="rounded-full border border-[#483323] bg-[#2a1d15]/90 px-3 py-1 text-sky-200 hover:border-sky-400 hover:bg-[#38261b] hover:text-white transition-all shadow-xs"
           >
             "{tag.label}"
           </button>
@@ -220,8 +220,8 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ navigate
       </div>
 
       {/* Trust reassurance text */}
-      <p className="mt-3 text-center text-xs text-neutral-400">
-        Free tools • No signup for core tools • Practical guides
+      <p className="mt-3 text-center text-xs text-neutral-300">
+        Free tools • No signup for core tools • Real-time AI matrix search
       </p>
     </div>
   );

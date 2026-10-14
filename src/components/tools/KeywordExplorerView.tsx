@@ -137,14 +137,26 @@ export const KeywordExplorerView: React.FC<KeywordExplorerViewProps> = ({ initia
             </label>
             <select
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full rounded-xl border border-neutral-300 bg-neutral-50/50 px-4 py-3 text-sm text-neutral-900 focus:border-blue-600 focus:bg-white focus:outline-hidden"
+              onChange={(e) => {
+                const newCountry = e.target.value;
+                setCountry(newCountry);
+              }}
+              className="w-full rounded-xl border border-neutral-300 bg-neutral-50/50 px-4 py-3 text-sm text-neutral-900 focus:border-sky-500 focus:bg-white focus:outline-hidden"
             >
-              <option value="United States (US)">United States (US)</option>
-              <option value="United Kingdom (UK)">United Kingdom (UK)</option>
-              <option value="Canada (CA)">Canada (CA)</option>
-              <option value="Australia (AU)">Australia (AU)</option>
-              <option value="Worldwide">Worldwide</option>
+              <option value="United States (US)">🇺🇸 United States (US) - USD ($)</option>
+              <option value="United Kingdom (UK)">🇬🇧 United Kingdom (UK) - GBP (£)</option>
+              <option value="Canada (CA)">🇨🇦 Canada (CA) - CAD (C$)</option>
+              <option value="Australia (AU)">🇦🇺 Australia (AU) - AUD (A$)</option>
+              <option value="Germany (DE)">🇩🇪 Germany (DE) - EUR (€)</option>
+              <option value="France (FR)">🇫🇷 France (FR) - EUR (€)</option>
+              <option value="India (IN)">🇮🇳 India (IN) - INR (₹)</option>
+              <option value="Japan (JP)">🇯🇵 Japan (JP) - JPY (¥)</option>
+              <option value="Brazil (BR)">🇧🇷 Brazil (BR) - BRL (R$)</option>
+              <option value="Netherlands (NL)">🇳🇱 Netherlands (NL) - EUR (€)</option>
+              <option value="Spain (ES)">🇪🇸 Spain (ES) - EUR (€)</option>
+              <option value="Italy (IT)">🇮🇹 Italy (IT) - EUR (€)</option>
+              <option value="Singapore (SG)">🇸🇬 Singapore (SG) - SGD (S$)</option>
+              <option value="Worldwide">🌐 Worldwide / Global - USD ($)</option>
             </select>
           </div>
         </div>
@@ -180,12 +192,15 @@ export const KeywordExplorerView: React.FC<KeywordExplorerViewProps> = ({ initia
         <div className="space-y-6">
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-neutral-800">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-neutral-800">
               <span className="text-neutral-400">Target:</span>
               <span className="font-bold text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded">"{analysis.seedKeyword}"</span>
+              <span className="rounded-full bg-sky-100 text-sky-900 text-[11px] font-bold px-2.5 py-0.5 border border-sky-200">
+                Market: {analysis.country || country} ({analysis.currencySymbol || '$'})
+              </span>
               {analysis.easyWin && (
                 <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                  ★ EASY WIN OPPORTUNITY
+                  ★ EASY WIN
                 </span>
               )}
             </div>
@@ -211,11 +226,22 @@ export const KeywordExplorerView: React.FC<KeywordExplorerViewProps> = ({ initia
                 onClick={handleSaveWorkspace}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
               >
-                {saved ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Bookmark className="h-3.5 w-3.5 text-indigo-400" />}
+                {saved ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Bookmark className="h-3.5 w-3.5 text-sky-400" />}
                 <span>{saved ? 'Saved!' : 'Save to Workspace'}</span>
               </button>
             </div>
           </div>
+
+          {/* Regional Market Insight Notice */}
+          {analysis.marketInsight && (
+            <div className="rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-amber-50/40 p-3.5 text-xs text-neutral-800 flex items-start gap-2.5">
+              <Sparkles className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-sky-950">Localized Search Context ({analysis.country}): </span>
+                <span className="text-neutral-700">{analysis.marketInsight}</span>
+              </div>
+            </div>
+          )}
 
           {/* Metric KPI Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -45,13 +45,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
             onClick={() => handleNav('/')}
             className="flex items-center gap-2.5 text-left transition-opacity hover:opacity-90"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#452d1c] to-[#1c120a] text-sky-400 shadow-sm border border-[#5c3c26]">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight text-neutral-900">{brandConfig.siteName}</span>
-              <span className="ml-1.5 hidden rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 sm:inline">
-                GROWTH OS
+              <span className="text-xl font-extrabold tracking-tight text-neutral-900">{brandConfig.siteName}</span>
+              <span className="ml-1.5 hidden rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 border border-sky-200 sm:inline">
+                GROWTH MATRIX
               </span>
             </div>
           </button>
@@ -222,7 +222,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
           {/* Primary CTA */}
           <button
             onClick={() => handleNav('/tools')}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-98 transition-all"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-sky-400 px-4 py-2 text-xs font-bold text-[#1a120c] shadow-xs hover:bg-sky-300 active:scale-98 transition-all"
           >
             Explore Free Tools
           </button>

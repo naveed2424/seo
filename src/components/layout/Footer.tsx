@@ -71,10 +71,10 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
           {/* Brand Info Column */}
           <div className="col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#452d1c] to-[#1c120a] text-sky-400 border border-[#5c3c26]">
                 <Sparkles className="h-4 w-4" />
               </div>
-              <span className="text-lg font-bold text-neutral-900">{activeBrand}</span>
+              <span className="text-lg font-extrabold text-neutral-900">{activeBrand}</span>
             </div>
             <p className="max-w-sm text-sm text-neutral-500 leading-relaxed">
               Free AI tools, SEO research and practical strategies to help you create, automate and grow online. Built for creators, bloggers, and solo entrepreneurs.

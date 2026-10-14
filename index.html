@@ -2,6 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var _origFetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function () {
+              return _origFetch;
+            },
+            set: function (fn) {
+              _origFetch = fn;
+            },
+            configurable: true,
+            enumerable: true,
+          });
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RankPulse — Free AI Tools, SEO Research &amp; Online Growth Engine</title>
     <meta
