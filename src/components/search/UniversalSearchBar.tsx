@@ -49,11 +49,11 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ navigate
       navigate('/tools/etsy-tag-generator');
     } else if (clean.includes('vs') || clean.includes('comparison') || clean.includes('chatgpt') || clean.includes('gemini')) {
       navigate('/comparisons');
-    } else if (clean.includes('software') || clean.includes('claude') || clean.includes('semrush') || clean.includes('video generator')) {
+    } else if (clean.includes('software') || clean.includes('claude') || clean.includes('video generator')) {
       navigate('/ai-tools');
     } else {
-      // General tools filter or keyword explorer
-      navigate(`/tools?q=${encodeURIComponent(query)}`);
+      // Flagship Keyword Explorer
+      navigate(`/tools/keyword-explorer?q=${encodeURIComponent(query)}`);
     }
     setIsOpen(false);
   };

@@ -94,8 +94,13 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-900">Free Tools</h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <button onClick={() => navigate('/tools/keyword-explorer')} className="hover:text-blue-600">
-                  Keyword Explorer
+                <button onClick={() => navigate('/tools/keyword-explorer')} className="font-bold text-sky-700 hover:underline">
+                  Global Keyword Explorer (Free)
+                </button>
+              </li>
+              <li>
+                <button onClick={() => navigate('/blog')} className="hover:text-blue-600">
+                  24H Trend Blog (3,800+ Words)
                 </button>
               </li>
               <li>
@@ -158,6 +163,11 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
               <li>
                 <button onClick={() => navigate('/statistics')} className="hover:text-blue-600">
                   Verified Statistics
+                </button>
+              </li>
+              <li>
+                <button onClick={() => navigate('/video')} className="text-sky-700 font-bold hover:underline flex items-center gap-1">
+                  🎬 UGC Video Studio (&gt;1m)
                 </button>
               </li>
             </ul>

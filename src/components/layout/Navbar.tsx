@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
             <div>
               <span className="text-xl font-extrabold tracking-tight text-neutral-900">{brandConfig.siteName}</span>
               <span className="ml-1.5 hidden rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-800 border border-sky-200 sm:inline">
-                GROWTH MATRIX
+                FREE SEO
               </span>
             </div>
           </button>
@@ -128,21 +128,34 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
               )}
             </div>
 
-            {/* SEO Dropdown */}
+            {/* Keyword Explorer Tool */}
             <button
               onClick={() => handleNav('/tools/keyword-explorer')}
-              className={`rounded-md px-3 py-2 transition-colors hover:text-neutral-900 ${
-                currentRoute === '/tools/keyword-explorer' ? 'text-blue-600 font-semibold' : ''
+              className={`rounded-md px-3 py-2 transition-colors font-bold ${
+                currentRoute === '/tools/keyword-explorer' ? 'text-sky-600 font-extrabold' : 'hover:text-neutral-900'
               }`}
             >
-              SEO Explorer
+              Keyword Explorer
+            </button>
+
+            {/* 24-Hour Autonomous Google Trends Blog */}
+            <button
+              onClick={() => handleNav('/blog')}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-2 transition-colors font-bold ${
+                currentRoute.startsWith('/blog') ? 'text-emerald-600 font-extrabold' : 'text-neutral-700 hover:text-neutral-900'
+              }`}
+            >
+              <span>24H Trend Blog</span>
+              <span className="rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-1.5 py-0.2 border border-emerald-300">
+                Auto
+              </span>
             </button>
 
             {/* AI Directory */}
             <button
               onClick={() => handleNav('/ai-tools')}
               className={`rounded-md px-3 py-2 transition-colors hover:text-neutral-900 ${
-                currentRoute.startsWith('/ai-tools') ? 'text-blue-600 font-semibold' : ''
+                currentRoute.startsWith('/ai-tools') ? 'text-sky-600 font-semibold' : ''
               }`}
             >
               AI Directory
@@ -152,20 +165,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
             <button
               onClick={() => handleNav('/comparisons')}
               className={`rounded-md px-3 py-2 transition-colors hover:text-neutral-900 ${
-                currentRoute.startsWith('/comparisons') ? 'text-blue-600 font-semibold' : ''
+                currentRoute.startsWith('/comparisons') ? 'text-sky-600 font-semibold' : ''
               }`}
             >
               Comparisons
-            </button>
-
-            {/* Blog */}
-            <button
-              onClick={() => handleNav('/blog')}
-              className={`rounded-md px-3 py-2 transition-colors hover:text-neutral-900 ${
-                currentRoute.startsWith('/blog') ? 'text-blue-600 font-semibold' : ''
-              }`}
-            >
-              Guides & Blog
             </button>
 
             {/* Resources & Prompts */}
@@ -185,6 +188,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
               }`}
             >
               Checklists
+            </button>
+
+            {/* UGC Video Studio */}
+            <button
+              onClick={() => handleNav('/video')}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-extrabold transition-all ml-1 ${
+                currentRoute === '/video'
+                  ? 'bg-[#2b1d14] text-sky-300 shadow-xs'
+                  : 'bg-sky-50 text-sky-900 hover:bg-sky-100 border border-sky-300'
+              }`}
+              title="Watch and download fully animated UGC video for TikTok & YouTube"
+            >
+              <Video className="h-3.5 w-3.5 text-sky-600" />
+              <span>🎬 UGC Studio (&gt;1m)</span>
             </button>
           </nav>
         </div>
@@ -221,10 +238,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
 
           {/* Primary CTA */}
           <button
-            onClick={() => handleNav('/tools')}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-sky-400 px-4 py-2 text-xs font-bold text-[#1a120c] shadow-xs hover:bg-sky-300 active:scale-98 transition-all"
+            onClick={() => handleNav('/tools/keyword-explorer')}
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-sky-400 px-4 py-2 text-xs font-bold text-[#1a120c] shadow-xs hover:bg-sky-300 active:scale-98 transition-all cursor-pointer"
           >
-            Explore Free Tools
+            Free Keyword Tool
           </button>
 
           {/* Mobile Menu Toggle */}
@@ -242,6 +259,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentRoute, navigate, onOpenSe
       {mobileMenuOpen && (
         <div className="border-b border-neutral-200 bg-white px-4 py-4 lg:hidden animate-in slide-in-from-top-2 duration-150 space-y-3">
           <div className="grid grid-cols-2 gap-2 text-sm font-medium">
+            <button
+              onClick={() => handleNav('/video')}
+              className="col-span-2 flex items-center justify-between rounded-lg p-2.5 text-left text-neutral-900 bg-sky-50 border border-sky-300 font-bold"
+            >
+              <span className="flex items-center gap-2 text-xs">
+                <Video className="h-4 w-4 text-sky-600" /> 🎬 UGC Video Studio (&gt;1m)
+              </span>
+              <span className="text-[10px] bg-sky-200 text-sky-900 font-extrabold px-2 py-0.5 rounded">TikTok / YT Ready</span>
+            </button>
             <button
               onClick={() => handleNav('/tools')}
               className="flex items-center gap-2 rounded-lg p-2.5 text-left text-neutral-800 bg-neutral-50 hover:bg-blue-50"

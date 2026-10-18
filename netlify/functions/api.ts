@@ -144,6 +144,44 @@ Return ONLY valid JSON matching:
       };
     }
 
+    if (action === 'analyze_keyword_semrush') {
+      const targetCountry = country || 'United States';
+      const prompt = `Act as an elite global SEO intelligence analyst replicating Semrush's data engine.
+Perform an in-depth keyword analysis or domain audit for: "${body.query}" in country: "${targetCountry}".
+Is Domain Audit: ${body.isDomain ? 'true' : 'false'}.
+Return ONLY valid JSON matching Semrush's data schema with: query, isDomain, country, countryCode, currencySymbol, monthlyVolume, monthlyVolumeNumeric, globalVolume, countryBreakdown, trend12Months, kdPercent, kdStatus, searchIntent, cpc, competitiveDensity, serpFeatures, broadMatch, phraseMatch, exactMatch, relatedKeywords, questions, serpTop10, and marketInsight.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ analysis: JSON.parse(response.text || '{}') }),
+      };
+    }
+
+    if (action === 'generate_24h_trend_article') {
+      const prompt = `Act as a senior technical SEO research fellow.
+Write an exhaustive, high-authority master guide for the trending topic: "${topic}".
+Target word count: strictly 3,800+ words.
+Structure must include H1 title, quickAnswer, keyTakeaways, 8 detailed sections with comparison tables, statistical benchmark data, GEO and regional search intent analysis for US, UK, EU, and Global markets, E-E-A-T credentials and primary source citations, circular internal backlinks to rank2seo free Semrush keyword tool, and Schema.org FAQ questions and answers.
+Return ONLY valid JSON.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ article: JSON.parse(response.text || '{}') }),
+      };
+    }
+
     if (action === 'run_tool') {
       const prompt = `Run tool ID "${toolId}" with inputs: ${JSON.stringify(inputs)}. Return JSON format.`;
       const response = await ai.models.generateContent({

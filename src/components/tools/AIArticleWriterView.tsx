@@ -103,12 +103,12 @@ export const AIArticleWriterView: React.FC<AIArticleWriterViewProps> = ({
 ${article.quickAnswer}
 
 ## Key Takeaways
-${article.keyTakeaways.map((t) => `- ${t}`).join('\n')}
+${article.keyTakeaways.map((t: string) => `- ${t}`).join('\n')}
 
 ${article.contentMarkdown}
 
 ## Frequently Asked Questions
-${article.faqSchema.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
+${article.faqSchema.map((f: { question: string; answer: string }) => `### ${f.question}\n${f.answer}`).join('\n\n')}
     `;
     navigator.clipboard.writeText(fullText);
     setCopied(true);
@@ -117,7 +117,7 @@ ${article.faqSchema.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
 
   const handleDownloadMD = () => {
     if (!article) return;
-    const fullText = `# ${article.title}\n\n## Quick Answer\n${article.quickAnswer}\n\n## Key Takeaways\n${article.keyTakeaways.map((t) => `- ${t}`).join('\n')}\n\n${article.contentMarkdown}`;
+    const fullText = `# ${article.title}\n\n## Quick Answer\n${article.quickAnswer}\n\n## Key Takeaways\n${article.keyTakeaways.map((t: string) => `- ${t}`).join('\n')}\n\n${article.contentMarkdown}`;
     const blob = new Blob([fullText], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -221,7 +221,7 @@ ${article.faqSchema.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
                 <div>
                   <h4 className="text-xs font-bold text-neutral-700 uppercase mb-2">Rising Search Queries (Click to Select &amp; Write Guide):</h4>
                   <div className="space-y-2">
-                    {trendResult.risingQueries.map((rq, idx) => (
+                    {trendResult.risingQueries.map((rq: { query: string; growth: string; intent: string }, idx: number) => (
                       <div
                         key={idx}
                         onClick={() => handleSelectTrendTopic(rq.query)}
@@ -396,7 +396,7 @@ ${article.faqSchema.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
                 Key Takeaways
               </h3>
               <ul className="space-y-1.5 text-xs sm:text-sm text-emerald-950 font-medium">
-                {article.keyTakeaways.map((takeaway, idx) => (
+                {article.keyTakeaways.map((takeaway: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2">
                     <span className="text-emerald-600 font-bold">•</span>
                     <span>{takeaway}</span>
@@ -411,7 +411,7 @@ ${article.faqSchema.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
                 Table of Contents
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {article.tableOfContents.map((toc) => (
+                {article.tableOfContents.map((toc: { id: string; label: string }) => (
                   <div key={toc.id} className="text-blue-600 font-medium">
                     {toc.label}
                   </div>
@@ -430,7 +430,7 @@ ${article.faqSchema.map((f) => `### ${f.question}\n${f.answer}`).join('\n\n')}
                 Generated FAQ Schema (E-E-A-T Rich Snippets)
               </h4>
               <div className="space-y-2">
-                {article.faqSchema.map((faq, idx) => (
+                {article.faqSchema.map((faq: { question: string; answer: string }, idx: number) => (
                   <div key={idx} className="rounded-xl border border-neutral-200 p-4 bg-neutral-50/30">
                     <p className="font-bold text-xs text-neutral-900">{faq.question}</p>
                     <p className="text-xs text-neutral-600 mt-1">{faq.answer}</p>

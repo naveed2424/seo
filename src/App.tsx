@@ -25,6 +25,8 @@ import { ResearchPage } from './pages/ResearchPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { StartHerePage } from './pages/StartHerePage';
 import { TrustPage } from './pages/TrustPages';
+import { UGCVideoStudio } from './components/video/UGCVideoStudio';
+import { Auto24hTrendBlogPage } from './pages/Auto24hTrendBlogPage';
 
 // Data
 import { TOOLS_DATABASE } from './data/toolsData';
@@ -74,6 +76,10 @@ export default function App() {
       return <KeywordExplorerView initialKeyword={q} navigate={navigate} />;
     }
 
+    if (pathname === '/video' || pathname === '/ugc-video' || pathname === '/ugc-studio' || pathname === '/tools/ugc-video-studio') {
+      return <UGCVideoStudio navigate={navigate} />;
+    }
+
     if (pathname === '/tools/ai-article-writer') {
       const topic = searchParams.get('topic') || '10 High-Demand Digital Products to Sell on Etsy in 2026';
       return <AIArticleWriterView initialTopic={topic} navigate={navigate} />;
@@ -95,9 +101,9 @@ export default function App() {
       return <ToolsDirectoryPage navigate={navigate} />;
     }
 
-    // 6. Blog & Specific Guides
-    if (pathname === '/blog' || pathname === '/blog/') {
-      return <BlogIndexPage navigate={navigate} />;
+    // 6. Autonomous 24-Hour Google Trends Blog & Guides
+    if (pathname === '/blog' || pathname === '/blog/' || pathname === '/trends-blog' || pathname === '/auto-blog') {
+      return <Auto24hTrendBlogPage navigate={navigate} />;
     }
 
     if (pathname.startsWith('/blog/')) {
@@ -106,7 +112,7 @@ export default function App() {
       if (post) {
         return <ArticleView post={post} navigate={navigate} />;
       }
-      return <BlogIndexPage navigate={navigate} />;
+      return <Auto24hTrendBlogPage navigate={navigate} selectedArticleSlug={slug} />;
     }
 
     // 7. Third-Party Software Directory

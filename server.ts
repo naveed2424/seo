@@ -36,10 +36,13 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+// Fast server-side LRU-style cache
+const serverSemrushCache = new Map<string, any>();
+
 // Central Gemini Generation Endpoint
 app.post('/api/gemini/generate', async (req: Request, res: Response) => {
   try {
-    const { action, topic, targetKeyword, tone, wordCount, niche, timeframe, keyword, country, toolId, inputs } = req.body;
+    const { action, topic, targetKeyword, tone, wordCount, niche, timeframe, keyword, country, countryCode, toolId, inputs, query, isDomain } = req.body;
 
     if (!ai) {
       // If no API key configured on server, return 400 so client fallback seamlessly executes
@@ -186,6 +189,83 @@ Return ONLY valid JSON matching this schema:
       const responseText = aiResponse.text || '{}';
       const analysis = JSON.parse(responseText);
       return res.json({ analysis });
+    }
+
+    if (action === 'analyze_keyword_semrush') {
+      const targetCountry = country || 'United States';
+      const cacheKey = `${String(query).toLowerCase().trim()}__${String(countryCode || targetCountry).toUpperCase()}`;
+
+      if (serverSemrushCache.has(cacheKey)) {
+        return res.json({ analysis: serverSemrushCache.get(cacheKey) });
+      }
+
+      const prompt = `Act as an elite global SEO intelligence analyst replicating an enterprise data engine.
+Perform an in-depth keyword analysis or domain audit for: "${query}" in country: "${targetCountry}".
+Is Domain Audit: ${isDomain ? 'true' : 'false'}.
+Return ONLY valid JSON matching the data schema with:
+- query: string
+- isDomain: boolean
+- country: string
+- countryCode: string
+- currencySymbol: string
+- monthlyVolume: string (e.g. "45.2K")
+- monthlyVolumeNumeric: number
+- globalVolume: string (e.g. "160.5K")
+- countryBreakdown: array of { country: string, flag: string, volume: string, sharePercent: number }
+- trend12Months: array of exactly 12 integers between 10 and 100
+- kdPercent: integer 0-100
+- kdStatus: { label: "Very Easy" | "Easy" | "Possible" | "Difficult" | "Hard" | "Very Hard", color: string, description: string }
+- searchIntent: { primary: "Informational" | "Commercial" | "Transactional" | "Navigational", badge: "I" | "C" | "T" | "N", description: string }
+- cpc: string
+- competitiveDensity: number (0.00 to 1.00)
+- serpFeatures: array of string feature names
+- broadMatch: array of { keyword, intent: "I"|"C"|"T"|"N", volume, volumeNumeric, kd, cpc, competitiveDensity, trend: number[] }
+- phraseMatch: array of same
+- exactMatch: array of same
+- relatedKeywords: array of same
+- questions: array of { question, volume, kd, answerSnippet: string }
+- serpTop10: array of { rank, title, url, domainAuthority, pageAuthority, backlinks, refDomains, traffic }
+- marketInsight: string (strictly a single readable sentence summarizing country market potential, NEVER return an object)
+${isDomain ? '- domainAudit: { domain: string, authorityScore: number, organicTrafficMonthly: string, organicKeywordsTotal: string, paidTrafficMonthly: string, topRankingKeywords: array, mainCompetitors: array }' : ''}`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      const responseText = aiResponse.text || '{}';
+      const analysis = JSON.parse(responseText);
+
+      // Save to server cache
+      serverSemrushCache.set(cacheKey, analysis);
+      return res.json({ analysis });
+    }
+
+    if (action === 'generate_24h_trend_article') {
+      const prompt = `Act as a senior technical SEO research fellow.
+Write an exhaustive, high-authority master guide for the trending topic: "${topic}".
+Target word count: strictly 3,800+ words.
+Structure must include:
+- H1 title with compelling CTR
+- Google AI Overview Quick Answer (50 words)
+- 5 Executive Key Takeaways
+- 8 detailed sections with comparison tables, statistical benchmark data, step-by-step blueprints, and case studies
+- GEO and regional search intent analysis for US, UK, EU, and Global markets
+- E-E-A-T credentials and primary source citations
+- Circular internal backlinks to rank2seo free keyword explorer and SEO intelligence tools
+- Schema.org FAQ questions and answers
+Return ONLY valid JSON.`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      const responseText = aiResponse.text || '{}';
+      const article = JSON.parse(responseText);
+      return res.json({ article });
     }
 
     if (action === 'run_tool') {

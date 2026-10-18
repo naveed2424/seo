@@ -31,23 +31,23 @@ export interface BrandConfig {
 }
 
 export const brandConfig: BrandConfig = {
-  siteName: "RankPulse",
-  tagline: "Grow Smarter With AI & Real-Time Search Matrix.",
-  subTagline: "Better Tools. Better Content. Better Traffic.",
-  logoText: "RankPulse",
-  domain: "rankpulse.io",
-  primaryColor: "#0284c7", // Luminous Light Blue / Cyber Cerulean
-  accentColor: "#593a22",  // Rich Espresso Brown
-  creatorName: "RankPulse Editorial & Engineering Team",
-  contactEmail: "hello@rankpulse.io",
-  supportEmail: "support@rankpulse.io",
+  siteName: "rank2seo",
+  tagline: "Global Keyword Research, Search Volume & Organic Competitor Intelligence",
+  subTagline: "Find exact keywords for businesses, products & websites across all countries 100% free.",
+  logoText: "rank2seo",
+  domain: "rank2seo.com",
+  primaryColor: "#0ea5e9", // Luminous Light Blue / Cyber Cerulean
+  accentColor: "#452d1c",  // Rich Espresso Brown
+  creatorName: "rank2seo Engineering & Data Team",
+  contactEmail: "hello@rank2seo.com",
+  supportEmail: "support@rank2seo.com",
   freeToolsCount: 42,
   establishedYear: 2026,
   socials: {
-    twitter: "https://twitter.com/rankpulse",
-    github: "https://github.com/rankpulse",
-    youtube: "https://youtube.com/@rankpulse",
-    linkedin: "https://linkedin.com/company/rankpulse",
+    twitter: "https://twitter.com/rank2seo",
+    github: "https://github.com/rank2seo",
+    youtube: "https://youtube.com/@rank2seo",
+    linkedin: "https://linkedin.com/company/rank2seo",
   },
   alternativeBrands: [
     { name: "GrowPilot", tagline: "Your AI autopilot for online growth", description: "Modern creator-focused brand with automation emphasis." },

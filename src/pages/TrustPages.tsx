@@ -166,7 +166,7 @@ export const TrustPage: React.FC<TrustPageProps> = ({ pageType, navigate }) => {
         <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900">Affiliate &amp; Monetization Disclosure</h1>
         <div className="rounded-2xl border border-neutral-200 bg-white p-8 space-y-6 text-xs sm:text-sm text-neutral-700 leading-relaxed">
           <p>
-            In compliance with the Federal Trade Commission (FTC) guidelines, please assume that certain links pointing to third-party software products (e.g. Semrush, Canva, Make.com) may be affiliate links.
+            In compliance with the Federal Trade Commission (FTC) guidelines, please assume that certain links pointing to third-party software products (e.g. Canva, Make.com, Notion) may be affiliate links.
           </p>
           <section className="space-y-2">
             <h2 className="font-bold text-base text-neutral-900">How It Affects You:</h2>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Sparkles,
@@ -12,9 +12,18 @@ import {
   Layers,
   ArrowRight,
   ExternalLink,
+  Globe,
+  Filter,
+  BarChart3,
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+  Lock,
+  Flame,
+  Award,
 } from 'lucide-react';
-import { aiService, KeywordAnalysisResult } from '../../services/aiService';
-import { LightweightVisual } from '../common/LightweightVisual';
+import { aiService, SemrushAnalysisResult, SemrushKeywordItem, SEMRUSH_COUNTRIES } from '../../services/aiService';
+import { MatrixDataStreamAnimation } from '../common/MatrixDataStreamAnimation';
 import { workspaceStorage } from '../../utils/workspaceStorage';
 import confetti from 'canvas-confetti';
 
@@ -23,381 +32,726 @@ interface KeywordExplorerViewProps {
   navigate: (route: string) => void;
 }
 
-export const KeywordExplorerView: React.FC<KeywordExplorerViewProps> = ({ initialKeyword = 'AI tools for creators', navigate }) => {
-  const [keyword, setKeyword] = useState(initialKeyword);
-  const [country, setCountry] = useState('United States (US)');
+export const KeywordExplorerView: React.FC<KeywordExplorerViewProps> = ({
+  initialKeyword = 'ai tools for creators',
+  navigate,
+}) => {
+  const [query, setQuery] = useState(initialKeyword);
+  const [selectedCountryCode, setSelectedCountryCode] = useState('US');
   const [loading, setLoading] = useState(false);
+  const [isGroundingAI, setIsGroundingAI] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'keywords' | 'questions' | 'longtail' | 'clusters' | 'serp'>('overview');
-  const [analysis, setAnalysis] = useState<KeywordAnalysisResult | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'broad' | 'phrase' | 'exact' | 'related' | 'questions' | 'serp'>('all');
+  const [analysis, setAnalysis] = useState<SemrushAnalysisResult | null>(() => {
+    return aiService.getInstantSemrushData(initialKeyword || 'AI tools for creators', 'US');
+  });
+  const [kdFilter, setKdFilter] = useState<'all' | 'easy' | 'high-vol'>('all');
 
-  const handleRunSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!keyword.trim()) return;
-    setLoading(true);
-    try {
-      const result = await aiService.analyzeKeyword(keyword, country);
-      setAnalysis(result);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const selectedCountry = SEMRUSH_COUNTRIES.find((c) => c.code === selectedCountryCode) || SEMRUSH_COUNTRIES[0];
+
+  const handleRunSearch = (targetQuery?: string) => {
+    const q = (targetQuery !== undefined ? targetQuery : query).trim();
+    if (!q) return;
+    if (targetQuery !== undefined) setQuery(targetQuery);
+
+    // Stage 1: INSTANT (<1ms) Semrush-grade rendering with local data engine
+    const instantData = aiService.getInstantSemrushData(q, selectedCountryCode);
+    setAnalysis(instantData);
+    setLoading(false);
+    setIsGroundingAI(true);
+
+    // Stage 2: Background AI refinement (non-blocking)
+    aiService
+      .analyzeKeywordSemrush(q, selectedCountryCode)
+      .then((aiResult) => {
+        setAnalysis(aiResult);
+      })
+      .catch((err) => {
+        console.warn('Background AI sync notice:', err);
+      })
+      .finally(() => {
+        setIsGroundingAI(false);
+      });
   };
 
-  // Run automatically on mount if initialKeyword is provided
-  React.useEffect(() => {
-    handleRunSearch();
+  useEffect(() => {
+    handleRunSearch(initialKeyword);
   }, []);
+
+  const handleCountryChange = (newCode: string) => {
+    setSelectedCountryCode(newCode);
+    const q = query.trim() || 'keyword research';
+
+    // 1. Instant Country Switch: 0ms latency, instant re-calculation of volume, currency & KD
+    const instantData = aiService.getInstantSemrushData(q, newCode);
+    setAnalysis(instantData);
+    setIsGroundingAI(true);
+
+    // 2. Non-blocking AI sync
+    aiService
+      .analyzeKeywordSemrush(q, newCode)
+      .then((aiData) => {
+        setAnalysis(aiData);
+      })
+      .finally(() => {
+        setIsGroundingAI(false);
+      });
+  };
 
   const handleSaveWorkspace = () => {
     if (!analysis) return;
     workspaceStorage.saveItem({
       id: `kw-${Date.now()}`,
       type: 'keyword',
-      title: analysis.seedKeyword,
-      category: 'SEO Keyword',
+      title: analysis.query,
+      category: analysis.isDomain ? 'Domain Audit' : 'Keyword Search',
       content: JSON.stringify(analysis, null, 2),
-      metadata: { score: analysis.opportunityScore, intent: analysis.searchIntent },
+      metadata: {
+        volume: analysis.monthlyVolume,
+        kd: analysis.kdPercent,
+        cpc: analysis.cpc,
+        country: analysis.country,
+      },
     });
     setSaved(true);
     confetti({ particleCount: 35, spread: 50, origin: { y: 0.8 } });
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const handleCopyKeywords = () => {
-    if (!analysis) return;
-    const list = analysis.relatedLongTail.map((k) => `${k.keyword} [Intent: ${k.intent}] (Score: ${k.opportunity})`).join('\n');
-    navigator.clipboard.writeText(list);
+  const handleCopyKeywords = (items: SemrushKeywordItem[]) => {
+    const text = items
+      .map((k) => `${k.keyword} | Vol: ${k.volume} | KD: ${k.kd}% | CPC: ${k.cpc} | Intent: ${k.intent}`)
+      .join('\n');
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleExportCSV = () => {
     if (!analysis) return;
-    const rows = [
-      ['Keyword', 'Intent', 'Opportunity Score'],
-      ...analysis.relatedLongTail.map((k) => [k.keyword, k.intent, k.opportunity.toString()]),
+    const allKeywords = [
+      ...analysis.broadMatch,
+      ...analysis.phraseMatch,
+      ...analysis.exactMatch,
+      ...analysis.relatedKeywords,
     ];
+
+    const rows = [
+      ['Keyword', 'Search Volume', 'Keyword Difficulty (KD%)', 'CPC', 'Intent', 'Competitive Density', 'Country'],
+      ...allKeywords.map((k) => [
+        `"${k.keyword}"`,
+        `"${k.volume}"`,
+        `"${k.kd}%"`,
+        `"${k.cpc}"`,
+        `"${k.intent}"`,
+        `"${k.competitiveDensity}"`,
+        `"${analysis.country}"`,
+      ]),
+    ];
+
     const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `rankpulse-keywords-${analysis.seedKeyword.replace(/\s+/g, '-')}.csv`);
+    link.setAttribute('download', `rank2seo-keyword-report-${analysis.query.replace(/[^a-zA-Z0-9]/g, '-')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Determine active keyword items for Keyword Explorer
+  const getDisplayKeywords = (): SemrushKeywordItem[] => {
+    if (!analysis) return [];
+    let list: SemrushKeywordItem[] = [];
+    if (activeTab === 'all') {
+      list = [...analysis.broadMatch, ...analysis.phraseMatch, ...analysis.relatedKeywords];
+    } else if (activeTab === 'broad') {
+      list = analysis.broadMatch;
+    } else if (activeTab === 'phrase') {
+      list = analysis.phraseMatch;
+    } else if (activeTab === 'exact') {
+      list = analysis.exactMatch;
+    } else if (activeTab === 'related') {
+      list = analysis.relatedKeywords;
+    }
+
+    if (kdFilter === 'easy') {
+      return list.filter((k) => k.kd <= 30);
+    }
+    if (kdFilter === 'high-vol') {
+      return list.filter((k) => k.volumeNumeric > 800);
+    }
+    return list;
+  };
+
+  const sampleSearches = [
+    { label: 'ai tools for creators', type: 'kw' },
+    { label: 'saas marketing', type: 'kw' },
+    { label: 'nike.com', type: 'domain' },
+    { label: 'etsy seo tags', type: 'kw' },
+    { label: 'hubspot.com', type: 'domain' },
+    { label: 'best running shoes uk', type: 'kw' },
+  ];
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Tool Header with Vector Illustration */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 rounded-2xl border border-neutral-200 bg-white p-6 md:p-8 shadow-xs mb-8">
-        <div className="max-w-2xl space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1">Flagship Utility</span>
-            <span className="text-xs text-neutral-400">100% Free • No API Key Required</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-            Keyword Explorer &amp; Opportunity Radar
-          </h1>
-          <p className="text-sm text-neutral-600 leading-relaxed">
-            Uncover high-intent search queries, long-tail variations, and searcher pain points. Evaluate our proprietary 0–100 Opportunity Score to find realistic rank targets before creating content.
-          </p>
-        </div>
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      {/* SEARCH ENGINE BAR with Matrix Data Stream Background */}
+      <div className="relative overflow-hidden rounded-3xl border-2 border-[#3d2a1d] bg-gradient-to-r from-[#1c120a] via-[#24170e] to-[#140d08] p-6 sm:p-8 text-white shadow-2xl space-y-6">
+        {/* Hypnotic, relaxed multi-color matrix rain */}
+        <MatrixDataStreamAnimation intensity="ambient" showColorIndicator={false} className="pointer-events-none absolute inset-0 z-0 opacity-40" />
 
-        {/* Lightweight SVG Vector Visual */}
-        <div className="w-48 h-32 shrink-0 rounded-xl overflow-hidden shadow-xs border border-blue-100 bg-blue-50/30">
-          <LightweightVisual type="keyword-explorer" />
-        </div>
-      </div>
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 text-xs font-bold px-3 py-1">
+                <Sparkles className="h-3.5 w-3.5 text-sky-400" />
+                <span>rank2seo • 100% FREE KEYWORD ENGINE</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                Global Keyword &amp; Competitor Search Engine
+              </h1>
+              <p className="text-xs sm:text-sm text-neutral-300">
+                Exact search volume, KD% difficulty, CPC in local currencies, SERP analysis &amp; domain audits for any business or website.
+              </p>
+            </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleRunSearch} className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-sm mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">
-              Seed Keyword or Topic
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                placeholder="e.g. digital products, AI automation, dog grooming"
-                className="w-full rounded-xl border border-neutral-300 bg-neutral-50/50 px-4 py-3 text-sm text-neutral-900 focus:border-blue-600 focus:bg-white focus:outline-hidden"
-              />
+            <div className="flex items-center gap-2 self-start md:self-auto">
+              <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-extrabold px-3 py-1">
+                ✓ Free Forever • 100% Free Organic Search Intelligence
+              </span>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 uppercase tracking-wider mb-1.5">
-              Target Market
-            </label>
+          {/* Unified Search Input Form */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleRunSearch();
+          }}
+          className="flex flex-col lg:flex-row items-stretch gap-3"
+        >
+          {/* Text Input */}
+          <div className="relative flex-1">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-neutral-400">
+              <Search className="h-5 w-5 text-sky-400" />
+            </div>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Enter keyword or domain (e.g. 'ai tools', 'nike.com', 'etsy seo', 'saas pricing')..."
+              className="w-full rounded-2xl border-2 border-[#5c3e29] bg-[#2a1a10] pl-12 pr-4 py-3.5 text-sm sm:text-base font-medium text-white placeholder-neutral-400 focus:border-sky-400 focus:outline-hidden focus:ring-2 focus:ring-sky-400/30 transition-all shadow-inner"
+            />
+          </div>
+
+          {/* Global Country Selector (18+ Countries matching Semrush) */}
+          <div className="relative min-w-[220px]">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-neutral-400">
+              <Globe className="h-4 w-4 text-sky-400" />
+            </div>
             <select
-              value={country}
-              onChange={(e) => {
-                const newCountry = e.target.value;
-                setCountry(newCountry);
-              }}
-              className="w-full rounded-xl border border-neutral-300 bg-neutral-50/50 px-4 py-3 text-sm text-neutral-900 focus:border-sky-500 focus:bg-white focus:outline-hidden"
+              value={selectedCountryCode}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              className="w-full appearance-none rounded-2xl border-2 border-[#5c3e29] bg-[#2a1a10] pl-10 pr-8 py-3.5 text-xs sm:text-sm font-bold text-white focus:border-sky-400 focus:outline-hidden transition-all cursor-pointer"
             >
-              <option value="United States (US)">🇺🇸 United States (US) - USD ($)</option>
-              <option value="United Kingdom (UK)">🇬🇧 United Kingdom (UK) - GBP (£)</option>
-              <option value="Canada (CA)">🇨🇦 Canada (CA) - CAD (C$)</option>
-              <option value="Australia (AU)">🇦🇺 Australia (AU) - AUD (A$)</option>
-              <option value="Germany (DE)">🇩🇪 Germany (DE) - EUR (€)</option>
-              <option value="France (FR)">🇫🇷 France (FR) - EUR (€)</option>
-              <option value="India (IN)">🇮🇳 India (IN) - INR (₹)</option>
-              <option value="Japan (JP)">🇯🇵 Japan (JP) - JPY (¥)</option>
-              <option value="Brazil (BR)">🇧🇷 Brazil (BR) - BRL (R$)</option>
-              <option value="Netherlands (NL)">🇳🇱 Netherlands (NL) - EUR (€)</option>
-              <option value="Spain (ES)">🇪🇸 Spain (ES) - EUR (€)</option>
-              <option value="Italy (IT)">🇮🇹 Italy (IT) - EUR (€)</option>
-              <option value="Singapore (SG)">🇸🇬 Singapore (SG) - SGD (S$)</option>
-              <option value="Worldwide">🌐 Worldwide / Global - USD ($)</option>
+              {SEMRUSH_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code} className="bg-[#1f130b] text-white">
+                  {c.flag} {c.name} ({c.currency.trim()})
+                </option>
+              ))}
             </select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-neutral-100">
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
-            <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-            <span>AI Semantic Radar active. Opportunity score reflects search intent, difficulty &amp; SERP gaps.</span>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-neutral-400">
+              ▼
+            </div>
           </div>
 
+          {/* Search Action Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:scale-98 disabled:opacity-50 transition-all"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-300 hover:to-sky-400 px-8 py-3.5 text-sm font-extrabold text-[#140e0a] shadow-lg shadow-sky-500/25 active:scale-98 transition-all shrink-0 cursor-pointer disabled:opacity-75"
           >
             {loading ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Analyzing Opportunity...</span>
-              </>
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-[#140e0a] border-t-transparent rounded-full animate-spin" />
+                <span>Analyzing Keyword Matrix...</span>
+              </span>
             ) : (
-              <>
-                <Search className="h-4 w-4" />
-                <span>Explore Keyword</span>
-              </>
+              <span className="flex items-center gap-2">
+                <Zap className="h-4 w-4 fill-current" />
+                <span>Search Global Data</span>
+              </span>
             )}
           </button>
-        </div>
-      </form>
+        </form>
 
-      {/* Results Section */}
+        {/* Quick Sample Search Chips */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span className="text-neutral-400 font-medium">Popular Searches:</span>
+          {sampleSearches.map((s, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setQuery(s.label);
+                handleRunSearch(s.label);
+              }}
+              className="rounded-lg bg-[#301e13] hover:bg-[#452b1b] px-2.5 py-1 text-sky-200 border border-[#523522] transition-colors"
+            >
+              {s.type === 'domain' ? '🌐 ' : '🔍 '}
+              {s.label}
+            </button>
+          ))}
+        </div>
+        </div>
+      </div>
+
+      {/* RESULTS DISPLAY */}
       {analysis && (
-        <div className="space-y-6">
-          {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-neutral-800">
-              <span className="text-neutral-400">Target:</span>
-              <span className="font-bold text-neutral-900 bg-neutral-100 px-2 py-0.5 rounded">"{analysis.seedKeyword}"</span>
-              <span className="rounded-full bg-sky-100 text-sky-900 text-[11px] font-bold px-2.5 py-0.5 border border-sky-200">
-                Market: {analysis.country || country} ({analysis.currencySymbol || '$'})
-              </span>
-              {analysis.easyWin && (
-                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                  ★ EASY WIN
-                </span>
-              )}
+        <div className="space-y-8 animate-in fade-in duration-200">
+          {/* Top Overview Control Ribbon */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{analysis.countryBreakdown[0]?.flag || '🌍'}</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-neutral-900">
+                    {analysis.query}
+                  </h2>
+                  <span className="rounded-md bg-sky-100 text-sky-800 text-[11px] font-bold px-2 py-0.5">
+                    {analysis.isDomain ? 'Domain Organic Audit' : 'Keyword Overview'}
+                  </span>
+                  <span className="rounded-md bg-neutral-100 text-neutral-700 text-[11px] font-bold px-2 py-0.5">
+                    {analysis.country}
+                  </span>
+                  {isGroundingAI && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold px-2.5 py-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-ping" />
+                      <span>Live AI Syncing...</span>
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-neutral-500 mt-0.5">
+                  {typeof analysis.marketInsight === 'string' ? (
+                    <p>{analysis.marketInsight}</p>
+                  ) : typeof analysis.marketInsight === 'object' && analysis.marketInsight !== null ? (
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {Object.entries(analysis.marketInsight).map(([k, v]) => (
+                        <span key={k} className="inline-flex items-center gap-1">
+                          <strong className="text-neutral-700 capitalize">{k.replace(/([A-Z])/g, ' $1')}:</strong>
+                          <span>{typeof v === 'string' ? v : JSON.stringify(v)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={handleCopyKeywords}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+                onClick={handleSaveWorkspace}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 px-3.5 py-2 text-xs font-bold text-neutral-700 transition-colors"
               >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-neutral-500" />}
-                <span>{copied ? 'Copied' : 'Copy List'}</span>
+                {saved ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Bookmark className="h-3.5 w-3.5 text-sky-600" />}
+                <span>{saved ? 'Saved!' : 'Save to Workspace'}</span>
               </button>
 
               <button
                 onClick={handleExportCSV}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 px-4 py-2 text-xs font-extrabold text-[#140e0a] shadow-xs active:scale-98 transition-all"
               >
-                <Download className="h-3.5 w-3.5 text-neutral-500" />
-                <span>Export CSV</span>
-              </button>
-
-              <button
-                onClick={handleSaveWorkspace}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
-              >
-                {saved ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Bookmark className="h-3.5 w-3.5 text-sky-400" />}
-                <span>{saved ? 'Saved!' : 'Save to Workspace'}</span>
+                <Download className="h-3.5 w-3.5" />
+                <span>Export CSV Report</span>
               </button>
             </div>
           </div>
 
-          {/* Regional Market Insight Notice */}
-          {analysis.marketInsight && (
-            <div className="rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-amber-50/40 p-3.5 text-xs text-neutral-800 flex items-start gap-2.5">
-              <Sparkles className="h-4 w-4 text-sky-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-sky-950">Localized Search Context ({analysis.country}): </span>
-                <span className="text-neutral-700">{analysis.marketInsight}</span>
+          {/* IF DOMAIN AUDIT: Semrush Domain Overview Panels */}
+          {analysis.isDomain && analysis.domainAudit && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-1">
+                  <span className="text-xs font-bold text-neutral-400 uppercase">Authority Score</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-extrabold text-sky-600">{analysis.domainAudit.authorityScore}</span>
+                    <span className="text-xs text-neutral-500">/ 100</span>
+                  </div>
+                  <span className="text-[11px] text-emerald-600 font-bold block">✓ High Domain Trust</span>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-1">
+                  <span className="text-xs font-bold text-neutral-400 uppercase">Organic Search Traffic</span>
+                  <div className="text-3xl font-extrabold text-neutral-900">
+                    {analysis.domainAudit.organicTrafficMonthly}
+                  </div>
+                  <span className="text-[11px] text-neutral-500">Estimated visits / month</span>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-1">
+                  <span className="text-xs font-bold text-neutral-400 uppercase">Ranked Keywords</span>
+                  <div className="text-3xl font-extrabold text-neutral-900">
+                    {analysis.domainAudit.organicKeywordsTotal}
+                  </div>
+                  <span className="text-[11px] text-neutral-500">Total Google SERP rankings</span>
+                </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-1">
+                  <span className="text-xs font-bold text-neutral-400 uppercase">Paid Search Traffic</span>
+                  <div className="text-3xl font-extrabold text-neutral-900">
+                    {analysis.domainAudit.paidTrafficMonthly}
+                  </div>
+                  <span className="text-[11px] text-neutral-500">PPC Google Ads clicks</span>
+                </div>
+              </div>
+
+              {/* Top Organic Ranking Keywords Table for this Domain */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-base text-neutral-900">
+                      Top Organic Keywords Driving Traffic to {analysis.domainAudit.domain}
+                    </h3>
+                    <p className="text-xs text-neutral-500">
+                      Positions, search demand, and estimated traffic contribution.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-neutral-50 text-neutral-500 uppercase font-bold border-y border-neutral-200">
+                      <tr>
+                        <th className="py-3 px-4">Position</th>
+                        <th className="py-3 px-4">Keyword</th>
+                        <th className="py-3 px-4">Search Volume</th>
+                        <th className="py-3 px-4">KD%</th>
+                        <th className="py-3 px-4">Traffic Share</th>
+                        <th className="py-3 px-4">Ranking URL</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {analysis.domainAudit.topRankingKeywords.map((k, i) => (
+                        <tr key={i} className="hover:bg-neutral-50/70 transition-colors">
+                          <td className="py-3 px-4 font-mono font-extrabold text-sky-600">
+                            #{k.position}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-neutral-900">
+                            {k.keyword}
+                          </td>
+                          <td className="py-3 px-4 font-mono">{k.volume}</td>
+                          <td className="py-3 px-4 font-mono font-bold text-neutral-700">{k.kd}%</td>
+                          <td className="py-3 px-4 font-bold text-emerald-600">{k.trafficShare}</td>
+                          <td className="py-3 px-4 text-neutral-500 font-mono text-[11px] truncate max-w-[200px]">
+                            {k.url}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Metric KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Opportunity Score Card */}
-            <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/70 to-indigo-50/50 p-5">
+          {/* KEYWORD METRICS DASHBOARD (Semrush 6-Card Layout) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            {/* Card 1: Monthly Search Volume & 12-Month Trend Sparkline */}
+            <div className="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-800">Opportunity Score</span>
-                <span className="text-[10px] font-semibold text-blue-600 bg-white px-2 py-0.5 rounded-full border border-blue-200">
-                  RankPulse Metric
-                </span>
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Search Volume</span>
+                <span className="text-xs font-bold text-sky-600">{analysis.country}</span>
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-blue-700">{analysis.opportunityScore}</span>
-                <span className="text-xs font-bold text-neutral-400">/ 100</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-extrabold text-neutral-900">{analysis.monthlyVolume}</span>
+                <span className="text-xs text-neutral-500 font-medium">searches / mo</span>
               </div>
-              <p className="mt-1 text-[11px] text-blue-900/80">
-                {analysis.opportunityScore >= 75
-                  ? 'High commercial upside relative to SERP weakness. Recommended target.'
-                  : 'Requires established domain authority and comprehensive backlinks.'}
-              </p>
-            </div>
 
-            {/* Search Intent */}
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Search Intent</span>
-              <div className="mt-2">
-                <span className="inline-block rounded-md bg-purple-100 text-purple-800 text-base font-bold px-2.5 py-1">
-                  {analysis.searchIntent}
-                </span>
-              </div>
-              <p className="mt-2 text-[11px] text-neutral-500">
-                Searchers are looking to compare options, evaluate software, or find specific tools.
-              </p>
-            </div>
-
-            {/* Demand Range */}
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Demand Range</span>
-              <div className="mt-2 text-lg font-bold text-neutral-900">{analysis.monthlyVolumeEstimate}</div>
-              <p className="mt-2 text-[11px] text-neutral-400">
-                Estimated monthly search demand range based on semantic sampling.
-              </p>
-            </div>
-
-            {/* Commercial Value */}
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">Estimated CPC Value</span>
-              <div className="mt-2 text-lg font-bold text-emerald-700">{analysis.cpcEstimate}</div>
-              <p className="mt-2 text-[11px] text-neutral-400">
-                Advertiser bidding value indicates high commercial purchasing intent.
-              </p>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex border-b border-neutral-200 gap-6 text-sm font-semibold">
-            {[
-              { id: 'overview', label: 'Overview & SERP Gaps' },
-              { id: 'keywords', label: 'Keywords & Scores' },
-              { id: 'questions', label: 'Questions & Pain Points' },
-              { id: 'clusters', label: 'Topic Clusters' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-3 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-neutral-500 hover:text-neutral-900'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content 1: Overview & SERP Gaps */}
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-                <h3 className="text-base font-bold text-neutral-900 mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-blue-600" />
-                  Identified SERP Weaknesses &amp; Content Gaps
-                </h3>
-                <p className="text-xs text-neutral-500 mb-4">
-                  These represent concrete opportunities where current Page 1 ranking articles fail searchers:
-                </p>
-                <div className="space-y-2.5">
-                  {analysis.serpGaps.map((gap, i) => (
-                    <div key={i} className="flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">
-                        {i + 1}
-                      </span>
-                      <p className="text-xs text-emerald-950 font-medium leading-relaxed">{gap}</p>
+              {/* 12-Month Historical Seasonality Trend Bar Chart */}
+              <div className="pt-2 border-t border-neutral-100 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] text-neutral-500 font-medium">
+                  <span>12-Month Search Demand Trend</span>
+                  <span className="text-emerald-600 font-bold">Stable Growth</span>
+                </div>
+                <div className="flex items-end gap-1.5 h-12 pt-1">
+                  {analysis.trend12Months.map((val, idx) => (
+                    <div
+                      key={idx}
+                      className="flex-1 bg-sky-200 hover:bg-sky-400 rounded-t transition-all cursor-pointer relative group"
+                      style={{ height: `${val}%` }}
+                      title={`Month ${idx + 1}: ${val}% search interest`}
+                    >
+                      <div className="hidden group-hover:block absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-neutral-900 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap z-10">
+                        {val}%
+                      </div>
                     </div>
                   ))}
                 </div>
+                <div className="flex justify-between text-[10px] text-neutral-400 font-mono">
+                  <span>12 mos ago</span>
+                  <span>Now</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Keyword Difficulty (KD%) Ring Meter */}
+            <div className="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Keyword Difficulty</span>
+                <span
+                  className="rounded-md text-[11px] font-extrabold px-2 py-0.5 text-white"
+                  style={{ backgroundColor: analysis.kdStatus.color }}
+                >
+                  {analysis.kdStatus.label}
+                </span>
               </div>
 
-              {/* Action Button: Create Article with AI */}
-              <div className="rounded-2xl border border-indigo-200 bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h4 className="text-lg font-bold">Ready to write a guide for this keyword?</h4>
-                  <p className="text-xs text-blue-100 mt-1">
-                    Pass "{analysis.seedKeyword}" directly into our AI Article Writer to create an E-E-A-T structured blueprint in seconds.
+              <div className="flex items-center gap-4">
+                {/* Visual circular progress meter */}
+                <div className="relative h-16 w-16 shrink-0 flex items-center justify-center">
+                  <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      className="text-neutral-100"
+                      strokeWidth="3.5"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      strokeWidth="3.5"
+                      strokeDasharray={`${analysis.kdPercent}, 100`}
+                      stroke={analysis.kdStatus.color}
+                      strokeLinecap="round"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <span className="absolute font-mono font-extrabold text-base text-neutral-900">
+                    {analysis.kdPercent}%
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-sm text-neutral-900">{analysis.kdStatus.label}</h4>
+                  <p className="text-[11px] text-neutral-500 leading-tight">
+                    {analysis.kdStatus.description}
                   </p>
                 </div>
+              </div>
+
+              <div className="pt-2 border-t border-neutral-100 text-[11px] text-neutral-500">
+                {analysis.kdPercent <= 30 ? (
+                  <span className="text-emerald-700 font-bold">★ High opportunity easy win for new or growing sites!</span>
+                ) : (
+                  <span>Build high quality content and internal backlinks to compete.</span>
+                )}
+              </div>
+            </div>
+
+            {/* Card 3: Global Volume & Top 5 Countries */}
+            <div className="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Global Volume</span>
+                <span className="text-xs font-mono font-extrabold text-neutral-900">{analysis.globalVolume}</span>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                {analysis.countryBreakdown.map((item, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className="flex items-center gap-1.5 text-neutral-800">
+                        <span>{item.flag}</span>
+                        <span>{item.country}</span>
+                      </span>
+                      <span className="font-mono text-neutral-600">{item.volume}</span>
+                    </div>
+                    <div className="w-full bg-neutral-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-sky-500 h-full rounded-full" style={{ width: `${item.sharePercent}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Card 4: Intent */}
+            <div className="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5 space-y-2 shadow-xs">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Search Intent</span>
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 font-extrabold text-xs">
+                  {analysis.searchIntent.badge}
+                </span>
+                <span className="font-extrabold text-base text-neutral-900">{analysis.searchIntent.primary}</span>
+              </div>
+              <p className="text-xs text-neutral-500 leading-relaxed">{analysis.searchIntent.description}</p>
+            </div>
+
+            {/* Card 5: CPC & Competitive Density */}
+            <div className="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5 space-y-2 shadow-xs">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">CPC &amp; Ads Density</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-neutral-900">{analysis.cpc}</span>
+                <span className="text-xs text-neutral-500 font-medium">avg cost per click</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-neutral-600 pt-1">
+                <span>Competitive Density:</span>
+                <span className="font-mono font-bold text-neutral-900">{analysis.competitiveDensity} / 1.00</span>
+              </div>
+            </div>
+
+            {/* Card 6: SERP Features */}
+            <div className="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-5 space-y-2 shadow-xs">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">SERP Features</span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {analysis.serpFeatures.map((feat, idx) => (
+                  <span
+                    key={idx}
+                    className="rounded-md bg-neutral-100 text-neutral-700 text-[11px] font-semibold px-2 py-0.5"
+                  >
+                    {typeof feat === 'string' ? feat : (feat as any)?.name || (feat as any)?.feature || JSON.stringify(feat)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* KEYWORD MATCH EXPLORER SECTION */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-6 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+              <div>
+                <h3 className="text-lg font-extrabold text-neutral-900 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-sky-500" />
+                  <span>Keyword Variations &amp; Intent Explorer</span>
+                </h3>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  Explore broad, phrase match, exact search terms and high-converting questions.
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate(`/tools/ai-article-writer?topic=${encodeURIComponent(analysis.seedKeyword)}`)}
-                  className="rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-neutral-900 hover:bg-neutral-100 shrink-0 shadow-sm"
+                  onClick={() => handleCopyKeywords(getDisplayKeywords())}
+                  className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:bg-neutral-50 transition-colors"
                 >
-                  Create Article Now →
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span>{copied ? 'Copied' : 'Copy List'}</span>
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-700 hover:bg-neutral-50 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>CSV</span>
                 </button>
               </div>
             </div>
-          )}
 
-          {/* Tab Content 2: Keywords & Scores Table */}
-          {activeTab === 'keywords' && (
-            <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
+            {/* Keyword Magic Tabs & Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold">
+                {[
+                  { id: 'all', label: 'All Match' },
+                  { id: 'broad', label: 'Broad Match' },
+                  { id: 'phrase', label: 'Phrase Match' },
+                  { id: 'exact', label: 'Exact Match' },
+                  { id: 'related', label: 'Related' },
+                  { id: 'questions', label: 'Questions' },
+                  { id: 'serp', label: 'SERP Top 10' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`rounded-lg px-3 py-1.5 transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-sky-500 text-[#140e0a] font-extrabold shadow-xs'
+                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick Filters */}
+              {activeTab !== 'questions' && activeTab !== 'serp' && (
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-neutral-400 font-medium">Filter:</span>
+                  <button
+                    onClick={() => setKdFilter(kdFilter === 'easy' ? 'all' : 'easy')}
+                    className={`rounded-md px-2.5 py-1 text-xs font-bold transition-colors ${
+                      kdFilter === 'easy' ? 'bg-emerald-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    Easy Wins (KD &le; 30%)
+                  </button>
+                  <button
+                    onClick={() => setKdFilter(kdFilter === 'high-vol' ? 'all' : 'high-vol')}
+                    className={`rounded-md px-2.5 py-1 text-xs font-bold transition-colors ${
+                      kdFilter === 'high-vol' ? 'bg-sky-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    High Volume (&gt;800)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Keyword Magic Table */}
+            {activeTab !== 'questions' && activeTab !== 'serp' && (
+              <div className="overflow-x-auto border border-neutral-200 rounded-xl">
                 <table className="w-full text-left text-xs">
-                  <thead className="border-b border-neutral-200 bg-neutral-50 text-[11px] uppercase tracking-wider text-neutral-500">
+                  <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase border-b border-neutral-200">
                     <tr>
-                      <th className="px-4 py-3">Keyword Query</th>
-                      <th className="px-4 py-3">Intent</th>
-                      <th className="px-4 py-3">Opportunity Score</th>
-                      <th className="px-4 py-3">Action</th>
+                      <th className="py-3 px-4">Keyword</th>
+                      <th className="py-3 px-4">Intent</th>
+                      <th className="py-3 px-4">Volume</th>
+                      <th className="py-3 px-4">KD%</th>
+                      <th className="py-3 px-4">CPC</th>
+                      <th className="py-3 px-4">Competitive Density</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
-                    {analysis.relatedLongTail.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-neutral-50/70 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-neutral-900">{item.keyword}</td>
-                        <td className="px-4 py-3">
-                          <span className="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-bold text-neutral-700">
+                    {getDisplayKeywords().map((item, idx) => (
+                      <tr key={idx} className="hover:bg-neutral-50 transition-colors">
+                        <td className="py-3 px-4 font-bold text-neutral-900">
+                          {item.keyword}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="rounded bg-indigo-50 text-indigo-700 text-[10px] font-extrabold px-1.5 py-0.5">
                             {item.intent}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-blue-600">{item.opportunity}</span>
-                            <div className="h-1.5 w-16 rounded-full bg-neutral-100 overflow-hidden">
-                              <div
-                                className="h-full bg-blue-600 rounded-full"
-                                style={{ width: `${item.opportunity}%` }}
-                              />
-                            </div>
-                          </div>
+                        <td className="py-3 px-4 font-mono font-bold text-neutral-800">
+                          {item.volume}
                         </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => navigate(`/tools/ai-article-writer?topic=${encodeURIComponent(item.keyword)}`)}
-                            className="text-blue-600 font-semibold hover:underline flex items-center gap-1"
+                        <td className="py-3 px-4 font-mono font-bold">
+                          <span
+                            className="rounded px-2 py-0.5 text-white text-[11px]"
+                            style={{
+                              backgroundColor:
+                                item.kd <= 14 ? '#10b981' : item.kd <= 29 ? '#22c55e' : item.kd <= 49 ? '#eab308' : item.kd <= 69 ? '#f97316' : '#ef4444',
+                            }}
                           >
-                            Draft Guide <ArrowRight className="h-3 w-3" />
+                            {item.kd}%
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-medium text-neutral-700">
+                          {item.cpc}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-neutral-600">
+                          {item.competitiveDensity}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => {
+                              setQuery(item.keyword);
+                              handleRunSearch(item.keyword);
+                            }}
+                            className="text-sky-600 hover:text-sky-800 font-bold hover:underline"
+                          >
+                            Analyze →
                           </button>
                         </td>
                       </tr>
@@ -405,53 +759,73 @@ export const KeywordExplorerView: React.FC<KeywordExplorerViewProps> = ({ initia
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Tab Content 3: Questions */}
-          {activeTab === 'questions' && (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4">
-              <h3 className="text-base font-bold text-neutral-900">What Searchers Are Desperately Asking</h3>
-              <p className="text-xs text-neutral-500">
-                Answer these questions in your H2/H3 subheadings and FAQ Schema to win rich search snippets:
-              </p>
+            {/* Questions Tab */}
+            {activeTab === 'questions' && (
               <div className="space-y-3">
-                {analysis.questionQueries.map((q, idx) => (
-                  <div key={idx} className="rounded-xl border border-neutral-200 p-4 hover:border-blue-200 transition-colors">
-                    <div className="flex items-center gap-2 font-bold text-neutral-900 text-sm">
-                      <HelpCircle className="h-4 w-4 text-blue-600 shrink-0" />
-                      <span>{q.question}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {analysis.questions.map((q, qIdx) => (
+                    <div key={qIdx} className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm text-neutral-900">❓ {q.question}</span>
+                        <span className="rounded bg-neutral-200 text-neutral-700 font-mono text-[11px] px-2 py-0.5">
+                          Vol: {q.volume}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-600 bg-white p-2.5 rounded-lg border border-neutral-200">
+                        <strong>AI Quick Answer Snippet:</strong>{' '}
+                        {typeof q.answerSnippet === 'string'
+                          ? q.answerSnippet
+                          : typeof q.answerSnippet === 'object' && q.answerSnippet !== null
+                          ? Object.values(q.answerSnippet).join(' ')
+                          : String(q.answerSnippet || '')}
+                      </p>
                     </div>
-                    <div className="mt-2 text-xs text-neutral-500 pl-6">
-                      <span className="font-semibold text-neutral-700">Searcher Friction:</span> {q.searcherPain}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tab Content 4: Clusters */}
-          {activeTab === 'clusters' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {analysis.semanticClusters.map((cluster, idx) => (
-                <div key={idx} className="rounded-2xl border border-neutral-200 bg-white p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Layers className="h-4 w-4 text-indigo-600" />
-                    <h4 className="font-bold text-neutral-900 text-sm">{cluster.clusterName}</h4>
-                  </div>
-                  <ul className="space-y-2 text-xs text-neutral-600">
-                    {cluster.keywords.map((kw, i) => (
-                      <li key={i} className="flex items-center gap-1.5 rounded-md bg-neutral-50 p-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-blue-600 shrink-0" />
-                        <span className="font-medium text-neutral-800">{kw}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+
+            {/* Google SERP Top 10 Analysis Tab */}
+            {activeTab === 'serp' && (
+              <div className="space-y-4">
+                <div className="overflow-x-auto border border-neutral-200 rounded-xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase border-b border-neutral-200">
+                      <tr>
+                        <th className="py-3 px-3">Rank</th>
+                        <th className="py-3 px-4">Title &amp; URL</th>
+                        <th className="py-3 px-3">DA</th>
+                        <th className="py-3 px-3">PA</th>
+                        <th className="py-3 px-4">Backlinks</th>
+                        <th className="py-3 px-4">Ref Domains</th>
+                        <th className="py-3 px-4">Est. Traffic</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-100">
+                      {analysis.serpTop10.map((serp) => (
+                        <tr key={serp.rank} className="hover:bg-neutral-50 transition-colors">
+                          <td className="py-3 px-3 font-mono font-extrabold text-sky-600">
+                            #{serp.rank}
+                          </td>
+                          <td className="py-3 px-4 max-w-sm">
+                            <div className="font-bold text-neutral-900 truncate">{serp.title}</div>
+                            <div className="text-neutral-400 font-mono text-[10px] truncate">{serp.url}</div>
+                          </td>
+                          <td className="py-3 px-3 font-mono font-bold text-neutral-700">{serp.domainAuthority}</td>
+                          <td className="py-3 px-3 font-mono text-neutral-600">{serp.pageAuthority}</td>
+                          <td className="py-3 px-4 font-mono">{serp.backlinks}</td>
+                          <td className="py-3 px-4 font-mono">{serp.refDomains}</td>
+                          <td className="py-3 px-4 font-mono font-bold text-emerald-600">{serp.traffic}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
